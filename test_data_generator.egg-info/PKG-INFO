@@ -1,0 +1,28 @@
+Metadata-Version: 2.4
+Name: test-data-generator
+Version: 1.0.0
+Summary: Stateful, logic-driven MDMS test data generation service
+Requires-Python: <3.15,>=3.14
+Requires-Dist: fastapi<1,>=0.115
+Requires-Dist: uvicorn[standard]<1,>=0.30
+Requires-Dist: pydantic<3,>=2.12
+Requires-Dist: pydantic-settings<3,>=2.11
+Requires-Dist: sqlalchemy<3,>=2.0.36
+Requires-Dist: alembic<2,>=1.14
+Requires-Dist: asyncpg==0.31.0
+Requires-Dist: psycopg[binary]==3.3.4
+Requires-Dist: celery<6,>=5.4
+Requires-Dist: redis<7,>=5.1
+Requires-Dist: faker<40,>=30.3
+Requires-Dist: prometheus-client<1,>=0.21
+Requires-Dist: python-dotenv<2,>=1.0
+Requires-Dist: pyyaml<7,>=6.0.2
+Requires-Dist: python-ulid<4,>=2.7
+Requires-Dist: httpx<1,>=0.27
+Requires-Dist: structlog<30,>=24.4
+Provides-Extra: dev
+Requires-Dist: pytest<9,>=8.3; extra == "dev"
+Requires-Dist: pytest-asyncio<2,>=0.24; extra == "dev"
+Requires-Dist: pytest-cov<7,>=5; extra == "dev"
+Requires-Dist: ruff<1,>=0.6.9; extra == "dev"
+Requires-Dist: mypy<2,>=1.11; extra == "dev"
