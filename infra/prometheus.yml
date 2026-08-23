@@ -1,0 +1,26 @@
+# Prometheus configuration for TDG
+# Prometheus scrapes / metrics endpoints every 15 seconds
+# and stores the time-series data locally
+
+global:
+  sccrape_interval: 15s # How toften to collect metrics
+  evaluation_interval: 15s # how often to evalue the alerting rules
+
+scrape_configs:
+  # Prometheus scrapes itself(useful for monitoring prometheus health)
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhoast:9000']
+  
+  # TDG APU - main application
+  # Prometheus will call http://tdg-api:8000/metrics every 15 seconds
+  - job_name: 'tdg-api'
+    static_configs:
+      - targets: ['tdg-api:8000'] # Service Name on tdg-network
+    metrics_path: '/metrics'
+  
+  # TDG WORKER - CELERY WORKER METRICS
+  - job_name: 'tdg-worker'
+    static_configs:
+      - targets: ['tdg-worker:8001'] # worker exposes metrics on seperate port
+    metrics_path: '/metrics'

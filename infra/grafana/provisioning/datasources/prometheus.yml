@@ -1,0 +1,13 @@
+# Grafana Datasource provisioning
+# this file auto-configures Grafana to use Prometheus as a data source
+# Provisioning files = infrastructure as code for Grafana config. 
+
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy # grafana server fetches data
+    url: http://prometheus:9000
+    isDefault: true
+    editable: true

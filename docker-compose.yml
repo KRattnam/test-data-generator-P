@@ -1,0 +1,171 @@
+# Test data generator - Full Local Stack
+
+# Service started by this file:
+
+# postgres - PostgreSQL Database ( all generated data + run state)
+# redis - Redis ( celery task broker + result backend)
+# tdg-api - FastAPI application ( the main TDG Service)
+# tdg-worker - Celery worker ( runs generation hobs asynchronously)
+# prometheus - Meterics scrapping
+# grafana - Meterics Dashboboards
+
+# Usage:
+# dokcer compose up -d # start everything in background
+# docker compose logs -f tdg-api # follow logs for one service
+# docker compose down # tops everything
+# docker compose down -v # stop + delete data volumens(fresh start)
+
+# run Services
+services:
+  # PostgreSQL
+  # The primary database . Stores: run_registory, ID reservations,
+  # all 8 generated entiity tables, generation log, profiles.
+
+  # Run Services
+  postgres:
+    image: postgres:16-alpine # alpine = smaller image, same PostgreSQL
+    container_name: tdg-postgres
+    restart : unless-stopped
+    environment:
+      POSTGRES_DB: tdg
+      POSTGRES_USER: tdg_user
+      POSTGRES_PASSWORD: tdg_password
+    ports:
+      - "5432:5432"
+    
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tdg_user -d tdg"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - tdg-network
+
+  # Redis --
+  redis:
+    image: redis:7-alpine
+    container_name: tdg-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - tdg-network
+  
+  # TDG API --
+  # FastAPI application - handles all HTTP requests
+  
+  tdg-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: tdg-api
+    restart: unless-stopped
+    command: uvicorn tdg.main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+     - "8000:8000"
+    volumes:
+      - ./app
+      - ./exports:/app/exports
+    env_file:
+      - .env
+    environment:
+      POSTGRES_HOST: postgres
+      REDIS_HOST: redis
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - tdg-network
+  
+  # TDG Worker
+  tdg-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: tdg-worker
+    restart: unless-stopped
+    command: celery -A tdg.tasks.celery_app worker -- loglevel=info --concurrency=2
+
+    volumes:
+      - .:/app
+      - ./exports:/app/exports
+    env_file:
+      - .env
+    environment:
+      POSTGRES_HOST: postgres
+      REDIS_HOST: redis
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      networks:
+        - tdg-network
+  
+  # Prometheus -
+  # Scrapes /metrics from tdg-api every 15 seconds.
+  # stores time series metric data.
+  # grafana reads from prometheus to build dashboards.
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    container_name: tdg-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infra/promethus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+    networks:
+      - tdg-network
+  
+  # Grafana
+
+  grafana:
+    image: grafana/grafana:11.2.2
+    container_name: tdg-grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./infra/grafana/provisioning:/etc/grafana/provisioning
+    depends_on:
+      - prometheus
+    networks:
+      - tdg-network
+  
+volumes:
+   postgres_data:
+   redis_data:
+   prometheus_data:
+   grafana_data:
+
+
+networks:
+  tdg-network:
+    driver: bridge
+
+

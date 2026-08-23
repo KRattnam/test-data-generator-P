@@ -1,0 +1,36 @@
+# Environment
+
+.env
+.env.*
+
+#python
+__pyache__/
+*.py[cod]
+*.pyo
+.Python
+*.egg-info/
+dist/
+build/
+
+# Virtual machine
+.venv/
+
+# Tesitng + Coverage
+
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+#exports
+exports/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS(mac specific)
+.DS_Store
+
